@@ -1,17 +1,19 @@
-//
-//  ScreenAskApp.swift
-//  ScreenAsk
-//
-//  Created by Prashant Gautam on 11/05/26.
-//
-
 import SwiftUI
 
 @main
 struct ScreenAskApp: App {
+    @StateObject private var coordinator = AppCoordinator()
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra("ScreenAsk", systemImage: "sparkles.rectangle.stack") {
+            ContentView(coordinator: coordinator)
+        }
+
+        Settings {
+            PreferencesView(settings: coordinator.settings)
+                .onDisappear {
+                    coordinator.restartWatcher()
+                }
         }
     }
 }
