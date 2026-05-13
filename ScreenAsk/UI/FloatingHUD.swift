@@ -14,7 +14,7 @@ final class FloatingHUDController {
     var onAsk: ((String) -> Void)?
     var onDismiss: (() -> Void)?
 
-    func show(image: NSImage, autoDismiss: TimeInterval, position: HUDPosition) {
+    func show(image: NSImage, autoDismiss: TimeInterval?, position: HUDPosition) {
         let preservePrompt = (panel?.isVisible ?? false) && state.hasUserInteracted
 
         state.image = image
@@ -30,7 +30,7 @@ final class FloatingHUDController {
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
 
-        if autoDismiss > 0 {
+        if let autoDismiss, autoDismiss > 0 {
             DispatchQueue.main.asyncAfter(deadline: .now() + autoDismiss) { [weak self] in
                 guard let self else { return }
                 guard !self.state.isLoading, !self.state.hasUserInteracted else { return }

@@ -12,6 +12,7 @@ final class AppCoordinator: ObservableObject {
 
     private let groqClient = GroqClient()
     private let hudController = FloatingHUDController()
+    private let miniTriggerController = MiniTriggerPanelController()
     private let responseController = ResponsePanelController()
     private var watcher: FSEventsWatcher?
     private var currentScreenshotURL: URL?
@@ -19,6 +20,11 @@ final class AppCoordinator: ObservableObject {
     private var scopedWatchFolderURL: URL?
     private var lastHandledScreenshotPath: String?
     private var lastHandledScreenshotAt: Date = .distantPast
+    private var openURLObserver: NSObjectProtocol?
+    private var becameActiveObserver: NSObjectProtocol?
+    private var suppressedMiniTriggerPath: String?
+    private var suppressedMiniTriggerUntil: Date = .distantPast
+    private var miniTriggerCooldownByPath: [String: Date] = [:]
 
     init() {
         PermissionManager.ensureRequiredPermissions()
@@ -27,10 +33,38 @@ final class AppCoordinator: ObservableObject {
             self?.askAI(prompt: prompt)
         }
 
+        miniTriggerController.onAskTapped = { [weak self] in
+            self?.showHUDForLatestScreenshot()
+        }
+
+        openURLObserver = NotificationCenter.default.addObserver(
+            forName: .screenAskDidOpenURL,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let url = note.object as? URL else { return }
+            self?.handleIncomingURL(url)
+        }
+
+        becameActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.consumePendingQuickActionRequest()
+        }
+
         startWatcher()
+        consumePendingQuickActionRequest()
     }
 
     deinit {
+        if let openURLObserver {
+            NotificationCenter.default.removeObserver(openURLObserver)
+        }
+        if let becameActiveObserver {
+            NotificationCenter.default.removeObserver(becameActiveObserver)
+        }
         scopedWatchFolderURL?.stopAccessingSecurityScopedResource()
     }
 
@@ -60,7 +94,7 @@ final class AppCoordinator: ObservableObject {
             statusMessage = "Watching \(folderURL.path) (no explicit access grant)"
         }
 
-        watcher = FSEventsWatcher(folderURL: folderURL) { [weak self] url in
+        watcher = FSEventsWatcher(folderURL: folderURL) { [weak self] url, _ in
             Task { @MainActor in
                 self?.handleScreenshot(url)
             }
@@ -82,27 +116,36 @@ final class AppCoordinator: ObservableObject {
         currentScreenshotURL = url
         latestScreenshotPath = url.path
         canShowHUDForLatestScreenshot = true
-        statusMessage = "Detected screenshot: \(url.lastPathComponent)"
+
+        if suppressedMiniTriggerPath == url.path, Date() <= suppressedMiniTriggerUntil {
+            statusMessage = "Skipping mini trigger for quick action image"
+            return
+        }
+
+        if let until = miniTriggerCooldownByPath[url.path], Date() <= until {
+            statusMessage = "Ignoring repeat event for same screenshot"
+            return
+        }
+
+        if hudController.shouldSuppressAutoShow {
+            statusMessage = "New screenshot detected while typing; HUD not interrupted"
+            return
+        }
+
+        miniTriggerController.show(
+            autoDismiss: settings.autoDismissSeconds,
+            position: settings.hudPosition
+        )
+        miniTriggerCooldownByPath[url.path] = Date().addingTimeInterval(settings.autoDismissSeconds + 3)
+        statusMessage = "Mini ask trigger shown"
 
         Task { @MainActor in
             guard let image = await loadImageWhenReady(from: url) else {
-                statusMessage = "Image not ready yet. Use 'Show HUD For Latest Screenshot'."
+                statusMessage = "Image not ready yet. Mini trigger is available."
                 return
             }
             latestImage = image
-
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            if hudController.shouldSuppressAutoShow {
-                statusMessage = "New screenshot detected while typing; HUD not interrupted"
-                return
-            }
-
-            hudController.show(
-                image: image,
-                autoDismiss: settings.autoDismissSeconds,
-                position: settings.hudPosition
-            )
-            statusMessage = "HUD shown"
+            statusMessage = "Screenshot ready"
         }
     }
 
@@ -123,7 +166,7 @@ final class AppCoordinator: ObservableObject {
         return nil
     }
 
-    private func latestPNGInWatchFolder() -> URL? {
+    private func latestImageInWatchFolder() -> URL? {
         let folderURL = URL(fileURLWithPath: settings.watchFolderPath)
         let keys: [URLResourceKey] = [.contentModificationDateKey, .isRegularFileKey]
         guard let enumerator = FileManager.default.enumerator(
@@ -138,7 +181,7 @@ final class AppCoordinator: ObservableObject {
         var latestDate = Date.distantPast
 
         for case let fileURL as URL in enumerator {
-            guard fileURL.pathExtension.lowercased() == "png" else { continue }
+            guard isSupportedImageFile(fileURL) else { continue }
             guard let values = try? fileURL.resourceValues(forKeys: Set(keys)),
                   values.isRegularFile == true else { continue }
             let modified = values.contentModificationDate ?? .distantPast
@@ -151,9 +194,14 @@ final class AppCoordinator: ObservableObject {
         return latestURL
     }
 
+    private func isSupportedImageFile(_ url: URL) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        return ["png", "jpg", "jpeg", "webp", "heic", "heif", "gif", "bmp", "tiff"].contains(ext)
+    }
+
     func showHUDForLatestScreenshot() {
         Task { @MainActor in
-            let targetURL = currentScreenshotURL ?? latestPNGInWatchFolder()
+            let targetURL = currentScreenshotURL ?? latestImageInWatchFolder()
             guard let screenshotURL = targetURL else {
                 statusMessage = "No screenshot available yet"
                 return
@@ -172,13 +220,65 @@ final class AppCoordinator: ObservableObject {
                 return
             }
 
+            miniTriggerController.dismiss()
             hudController.show(
                 image: image,
                 autoDismiss: settings.autoDismissSeconds,
                 position: settings.hudPosition
             )
-            statusMessage = "HUD shown from menu action"
+            statusMessage = "HUD shown"
         }
+    }
+
+    private func consumePendingQuickActionRequest() {
+        guard let path = QuickActionRequestStore.readAndConsumeRequest() else { return }
+        let fileURL = URL(fileURLWithPath: path)
+        openImageFromExternalTrigger(fileURL)
+    }
+
+    private func openImageFromExternalTrigger(_ fileURL: URL) {
+        guard isSupportedImageFile(fileURL) else {
+            statusMessage = "Unsupported file type: \(fileURL.pathExtension)"
+            return
+        }
+
+        Task { @MainActor in
+            currentScreenshotURL = fileURL
+            latestScreenshotPath = fileURL.path
+            canShowHUDForLatestScreenshot = true
+
+            suppressedMiniTriggerPath = fileURL.path
+            suppressedMiniTriggerUntil = Date().addingTimeInterval(6)
+
+            latestImage = await loadImageWhenReady(from: fileURL)
+            guard let image = latestImage else {
+                statusMessage = "Could not load image from external trigger"
+                return
+            }
+
+            miniTriggerController.dismiss()
+            hudController.show(
+                image: image,
+                autoDismiss: nil,
+                position: settings.hudPosition
+            )
+            statusMessage = "Opened HUD from quick action"
+        }
+    }
+
+    func handleIncomingURL(_ url: URL) {
+        guard url.scheme?.lowercased() == "screenask" else { return }
+        guard url.host?.lowercased() == "ask" else { return }
+
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let fileValue = components.queryItems?.first(where: { $0.name == "file" })?.value,
+              let decoded = fileValue.removingPercentEncoding else {
+            statusMessage = "Invalid quick action URL"
+            return
+        }
+
+        let fileURL = URL(fileURLWithPath: decoded)
+        openImageFromExternalTrigger(fileURL)
     }
 
     func askAI(prompt: String) {

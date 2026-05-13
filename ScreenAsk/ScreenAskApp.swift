@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct ScreenAskApp: App {
+    @NSApplicationDelegateAdaptor(ScreenAskAppDelegate.self) var appDelegate
     @StateObject private var coordinator = AppCoordinator()
 
     var body: some Scene {

@@ -6,20 +6,84 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		48D71EA62FB4440A00C5D224 /* menu-item.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 48D71E982FB4440A00C5D224 /* menu-item.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		48D71EA42FB4440A00C5D224 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 48D71E472FB1E2C500C5D224 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 48D71E972FB4440A00C5D224;
+			remoteInfo = "menu-item";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		48D71EAB2FB4440A00C5D224 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				48D71EA62FB4440A00C5D224 /* menu-item.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		48D71E4F2FB1E2C500C5D224 /* ScreenAsk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenAsk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		48D71E982FB4440A00C5D224 /* menu-item.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "menu-item.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		48D71EA72FB4440A00C5D224 /* Exceptions for "menu-item" folder in "menu-item" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 48D71E972FB4440A00C5D224 /* menu-item */;
+		};
+		48D71EAF2FB445FA00C5D224 /* Exceptions for "ScreenAsk" folder in "ScreenAsk" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 48D71E4E2FB1E2C500C5D224 /* ScreenAsk */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		48D71E512FB1E2C500C5D224 /* ScreenAsk */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				48D71EAF2FB445FA00C5D224 /* Exceptions for "ScreenAsk" folder in "ScreenAsk" target */,
+			);
 			path = ScreenAsk;
+			sourceTree = "<group>";
+		};
+		48D71E992FB4440A00C5D224 /* menu-item */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				48D71EA72FB4440A00C5D224 /* Exceptions for "menu-item" folder in "menu-item" target */,
+			);
+			path = "menu-item";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		48D71E4C2FB1E2C500C5D224 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		48D71E952FB4440A00C5D224 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				48D71E512FB1E2C500C5D224 /* ScreenAsk */,
+				48D71E992FB4440A00C5D224 /* menu-item */,
 				48D71E502FB1E2C500C5D224 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +106,7 @@
 			isa = PBXGroup;
 			children = (
 				48D71E4F2FB1E2C500C5D224 /* ScreenAsk.app */,
+				48D71E982FB4440A00C5D224 /* menu-item.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,10 +121,12 @@
 				48D71E4B2FB1E2C500C5D224 /* Sources */,
 				48D71E4C2FB1E2C500C5D224 /* Frameworks */,
 				48D71E4D2FB1E2C500C5D224 /* Resources */,
+				48D71EAB2FB4440A00C5D224 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				48D71EA52FB4440A00C5D224 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				48D71E512FB1E2C500C5D224 /* ScreenAsk */,
@@ -69,6 +137,28 @@
 			productName = ScreenAsk;
 			productReference = 48D71E4F2FB1E2C500C5D224 /* ScreenAsk.app */;
 			productType = "com.apple.product-type.application";
+		};
+		48D71E972FB4440A00C5D224 /* menu-item */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 48D71EA82FB4440A00C5D224 /* Build configuration list for PBXNativeTarget "menu-item" */;
+			buildPhases = (
+				48D71E942FB4440A00C5D224 /* Sources */,
+				48D71E952FB4440A00C5D224 /* Frameworks */,
+				48D71E962FB4440A00C5D224 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				48D71E992FB4440A00C5D224 /* menu-item */,
+			);
+			name = "menu-item";
+			packageProductDependencies = (
+			);
+			productName = "menu-item";
+			productReference = 48D71E982FB4440A00C5D224 /* menu-item.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +171,9 @@
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					48D71E4E2FB1E2C500C5D224 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					48D71E972FB4440A00C5D224 = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
 				};
@@ -100,12 +193,20 @@
 			projectRoot = "";
 			targets = (
 				48D71E4E2FB1E2C500C5D224 /* ScreenAsk */,
+				48D71E972FB4440A00C5D224 /* menu-item */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		48D71E4D2FB1E2C500C5D224 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		48D71E962FB4440A00C5D224 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +223,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		48D71E942FB4440A00C5D224 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		48D71EA52FB4440A00C5D224 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 48D71E972FB4440A00C5D224 /* menu-item */;
+			targetProxy = 48D71EA42FB4440A00C5D224 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		48D71E582FB1E2C600C5D224 /* Debug */ = {
@@ -250,6 +366,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ScreenAsk/ScreenAsk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -269,6 +386,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ScreenAsk/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -292,6 +410,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ScreenAsk/ScreenAsk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -311,6 +430,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ScreenAsk/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -323,6 +443,72 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		48D71EA92FB4440A00C5D224 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "menu-item/menu-item.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H63G67LTTC;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "menu-item/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "menu-item";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "EzPG.ScreenAsk.menu-item";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		48D71EAA2FB4440A00C5D224 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "menu-item/menu-item.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H63G67LTTC;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "menu-item/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "menu-item";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "EzPG.ScreenAsk.menu-item";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -346,6 +532,15 @@
 			buildConfigurations = (
 				48D71E5B2FB1E2C600C5D224 /* Debug */,
 				48D71E5C2FB1E2C600C5D224 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		48D71EA82FB4440A00C5D224 /* Build configuration list for PBXNativeTarget "menu-item" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				48D71EA92FB4440A00C5D224 /* Debug */,
+				48D71EAA2FB4440A00C5D224 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
