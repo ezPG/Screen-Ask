@@ -6,9 +6,10 @@ import SwiftUI
 final class FloatingHUDController {
     private var panel: NSPanel?
     private let state = HUDState()
+    private var currentPosition: HUDPosition = .bottomRight
 
     private let compactSize = NSSize(width: 480, height: 360)
-    private let expandedSize = NSSize(width: 480, height: 620)
+    private let expandedSize = NSSize(width: 520, height: 620)
 
     var shouldSuppressAutoShow: Bool {
         (panel?.isVisible ?? false) && state.hasUserInteracted && !state.isLoading
@@ -18,6 +19,7 @@ final class FloatingHUDController {
     var onDismiss: (() -> Void)?
 
     func show(image: NSImage, autoDismiss: TimeInterval?, position: HUDPosition) {
+        currentPosition = position
         let preservePrompt = (panel?.isVisible ?? false) && state.hasUserInteracted
 
         state.image = image
@@ -86,6 +88,8 @@ final class FloatingHUDController {
         panel.isOpaque = false
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
+        panel.isMovable = true
+        panel.isMovableByWindowBackground = true
 
         panel.contentView = NSHostingView(rootView: HUDContainerView(state: state) { [weak self] prompt in
             self?.onAsk?(prompt)
@@ -99,9 +103,25 @@ final class FloatingHUDController {
 
     private func resize(panel: NSPanel, size: NSSize) {
         var frame = panel.frame
-        let deltaH = size.height - frame.height
+
+        let targetWidth = size.width
+        let targetHeight = size.height
+
+        let deltaW = targetWidth - frame.width
+        let deltaH = targetHeight - frame.height
+
+        // Grow upward from bottom edge.
         frame.origin.y -= deltaH
-        frame.size = size
+
+        // For bottom-right anchoring, grow inward to the left.
+        if currentPosition == .bottomRight {
+            frame.origin.x -= deltaW
+        }
+
+        frame.size.width = targetWidth
+        frame.size.height = targetHeight
+
+        frame = clampedFrame(frame)
         panel.setFrame(frame, display: true, animate: true)
     }
 
@@ -109,7 +129,6 @@ final class FloatingHUDController {
         guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
         let visible = screen.visibleFrame
         let width = panel.frame.width
-        let height = panel.frame.height
         let margin: CGFloat = 20
 
         let x: CGFloat = position == .bottomRight
@@ -117,7 +136,27 @@ final class FloatingHUDController {
             : visible.minX + margin
         let y: CGFloat = visible.minY + margin
 
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        let frame = clampedFrame(NSRect(x: x, y: y, width: panel.frame.width, height: panel.frame.height))
+        panel.setFrame(frame, display: true)
+    }
+
+    private func clampedFrame(_ frame: NSRect) -> NSRect {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return frame }
+        let visible = screen.visibleFrame.insetBy(dx: 12, dy: 12)
+
+        var clamped = frame
+
+        if clamped.width > visible.width {
+            clamped.size.width = visible.width
+        }
+        if clamped.height > visible.height {
+            clamped.size.height = visible.height
+        }
+
+        clamped.origin.x = max(visible.minX, min(clamped.origin.x, visible.maxX - clamped.width))
+        clamped.origin.y = max(visible.minY, min(clamped.origin.y, visible.maxY - clamped.height))
+
+        return clamped
     }
 }
 
