@@ -4,6 +4,8 @@ struct HUDView: View {
     let image: NSImage
     @Binding var prompt: String
     let isLoading: Bool
+    let responseText: String
+    let showResponse: Bool
     let onPromptChanged: () -> Void
     let onAsk: () -> Void
     let onDismiss: () -> Void
@@ -13,14 +15,40 @@ struct HUDView: View {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 280, height: 160)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .frame(maxWidth: .infinity)
+                .frame(height: 170)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
             TextField("Ask about this screenshot", text: $prompt)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.white.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                )
                 .onChange(of: prompt) { _, _ in
                     onPromptChanged()
                 }
+                .onSubmit {
+                    onAsk()
+                }
+                .submitLabel(.send)
+
+            if showResponse {
+                Divider().overlay(Color.white.opacity(0.12))
+                ScrollView {
+                    Text(responseText.isEmpty ? "Thinking..." : responseText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundStyle(.white.opacity(0.95))
+                        .textSelection(.enabled)
+                }
+                .frame(minHeight: 160, maxHeight: 260)
+            }
 
             HStack {
                 Button("Dismiss", action: onDismiss)
@@ -30,6 +58,8 @@ struct HUDView: View {
             }
         }
         .padding(14)
-        .frame(width: 320)
+        .frame(width: 460)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

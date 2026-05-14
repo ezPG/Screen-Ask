@@ -7,6 +7,9 @@ final class FloatingHUDController {
     private var panel: NSPanel?
     private let state = HUDState()
 
+    private let compactSize = NSSize(width: 480, height: 360)
+    private let expandedSize = NSSize(width: 480, height: 620)
+
     var shouldSuppressAutoShow: Bool {
         (panel?.isVisible ?? false) && state.hasUserInteracted && !state.isLoading
     }
@@ -18,6 +21,8 @@ final class FloatingHUDController {
         let preservePrompt = (panel?.isVisible ?? false) && state.hasUserInteracted
 
         state.image = image
+        state.responseText = ""
+        state.showResponse = false
         if !preservePrompt {
             state.prompt = ""
             state.hasUserInteracted = false
@@ -25,6 +30,7 @@ final class FloatingHUDController {
         state.isLoading = false
 
         let panel = panel ?? makePanel()
+        resize(panel: panel, size: compactSize)
         place(panel: panel, position: position)
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
@@ -37,6 +43,21 @@ final class FloatingHUDController {
                 self.dismiss()
             }
         }
+    }
+
+    func beginResponse() {
+        state.responseText = ""
+        state.showResponse = true
+        if let panel {
+            resize(panel: panel, size: expandedSize)
+        }
+    }
+
+    func appendResponse(_ text: String) {
+        if !state.showResponse {
+            beginResponse()
+        }
+        state.responseText += text
     }
 
     func setLoading(_ loading: Bool) {
@@ -53,13 +74,16 @@ final class FloatingHUDController {
 
     private func makePanel() -> NSPanel {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 260),
-            styleMask: [.titled, .fullSizeContentView],
+            contentRect: NSRect(origin: .zero, size: compactSize),
+            styleMask: [.fullSizeContentView, .titled],
             backing: .buffered,
             defer: false
         )
         panel.level = .floating
-        panel.title = "ScreenAsk"
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
 
@@ -71,6 +95,14 @@ final class FloatingHUDController {
 
         self.panel = panel
         return panel
+    }
+
+    private func resize(panel: NSPanel, size: NSSize) {
+        var frame = panel.frame
+        let deltaH = size.height - frame.height
+        frame.origin.y -= deltaH
+        frame.size = size
+        panel.setFrame(frame, display: true, animate: true)
     }
 
     private func place(panel: NSPanel, position: HUDPosition) {
@@ -95,6 +127,8 @@ final class HUDState: ObservableObject {
     @Published var prompt: String = ""
     @Published var isLoading: Bool = false
     @Published var hasUserInteracted: Bool = false
+    @Published var responseText: String = ""
+    @Published var showResponse: Bool = false
 }
 
 struct HUDContainerView: View {
@@ -107,6 +141,8 @@ struct HUDContainerView: View {
             image: state.image,
             prompt: $state.prompt,
             isLoading: state.isLoading,
+            responseText: state.responseText,
+            showResponse: state.showResponse,
             onPromptChanged: {
                 state.hasUserInteracted = true
             },

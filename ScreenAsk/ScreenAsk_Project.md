@@ -14,8 +14,16 @@
 - [x] Implement Groq vision request payload + streaming response parsing
 - [x] Build response panel UI with live streamed text + copy/dismiss
 - [x] Wire end-to-end flow: screenshot detected → HUD → ask AI → stream response
-- [ ] Add required app configuration (`LSUIElement`, `NSScreenCaptureUsageDescription`)
+- [x] Add required app configuration (`LSUIElement`, `NSScreenCaptureUsageDescription`)
 - [ ] Validate by running manual smoke test (take screenshot -> HUD appears -> response streams)
+
+## UI/UX Polish Checklist
+
+- [x] Move prompt and response into a single HUD window
+- [x] Expand HUD height when AI response starts streaming
+- [x] Add Enter/Return key submit for prompt input
+- [x] Apply modern translucent styling (less opaque, cleaner visual hierarchy)
+- [ ] Validate interaction flow (type -> Enter/Ask -> expand -> stream)
 
 ## Overview
 

@@ -13,7 +13,6 @@ final class AppCoordinator: ObservableObject {
     private let groqClient = GroqClient()
     private let hudController = FloatingHUDController()
     private let miniTriggerController = MiniTriggerPanelController()
-    private let responseController = ResponsePanelController()
     private var watcher: FSEventsWatcher?
     private var currentScreenshotURL: URL?
     private var latestImage: NSImage?
@@ -282,17 +281,18 @@ final class AppCoordinator: ObservableObject {
     }
 
     func askAI(prompt: String) {
+        let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPrompt.isEmpty else { return }
+
         guard !settings.apiKey.isEmpty else {
-            responseController.reset()
-            responseController.append("Missing Groq API key. Add it in Preferences.")
-            responseController.show()
+            hudController.beginResponse()
+            hudController.appendResponse("Missing Groq API key. Add it in Preferences.")
             return
         }
         guard let screenshotURL = currentScreenshotURL else { return }
 
+        hudController.beginResponse()
         hudController.setLoading(true)
-        responseController.reset()
-        responseController.show()
 
         Task {
             defer {
@@ -305,11 +305,11 @@ final class AppCoordinator: ObservableObject {
                 try await groqClient.streamVisionResponse(
                     apiKey: settings.apiKey,
                     model: settings.selectedModel,
-                    prompt: prompt,
+                    prompt: trimmedPrompt,
                     imageFileURL: screenshotURL
                 ) { [weak self] delta in
                     await MainActor.run {
-                        self?.responseController.append(delta)
+                        self?.hudController.appendResponse(delta)
                     }
                 }
             } catch {
@@ -323,7 +323,7 @@ final class AppCoordinator: ObservableObject {
                 }
 
                 await MainActor.run {
-                    self.responseController.append("\n\nError: \(message)")
+                    self.hudController.appendResponse("\n\nError: \(message)")
                 }
             }
         }
