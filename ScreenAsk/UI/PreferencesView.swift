@@ -5,6 +5,10 @@ struct PreferencesView: View {
 
     @State private var revealAPIKey: Bool = false
     @State private var customModelInput: String = ""
+    @State private var showCustomModelInput: Bool = false
+    @State private var lastNonAddModelSelection: String = ""
+
+    private let addModelOption = "__add_model_option__"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,15 +51,44 @@ struct PreferencesView: View {
                         ForEach(settings.availableModels, id: \.self) { model in
                             Text(model).tag(model)
                         }
+                        Divider()
+                        Text("Add model…").tag(addModelOption)
+                    }
+                    .onChange(of: settings.selectedModel) { _, value in
+                        if value == addModelOption {
+                            showCustomModelInput = true
+                            let fallback = lastNonAddModelSelection.isEmpty
+                                ? (settings.availableModels.first ?? "")
+                                : lastNonAddModelSelection
+                            DispatchQueue.main.async {
+                                settings.selectedModel = fallback
+                            }
+                        } else {
+                            lastNonAddModelSelection = value
+                        }
                     }
 
-                    HStack {
-                        TextField("Add custom model", text: $customModelInput)
-                        Button("Add") {
-                            settings.addModel(customModelInput)
-                            customModelInput = ""
+                    if showCustomModelInput {
+                        HStack {
+                            TextField("Paste model name", text: $customModelInput)
+                            Button("Add") {
+                                let previous = settings.availableModels.first ?? ""
+                                settings.addModel(customModelInput)
+                                if settings.selectedModel != addModelOption {
+                                    showCustomModelInput = false
+                                    customModelInput = ""
+                                } else {
+                                    settings.selectedModel = previous
+                                }
+                            }
+                            .disabled(customModelInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                            Button("Cancel") {
+                                showCustomModelInput = false
+                                customModelInput = ""
+                                settings.selectedModel = settings.availableModels.first ?? ""
+                            }
                         }
-                        .disabled(customModelInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
 
@@ -95,5 +128,10 @@ struct PreferencesView: View {
         }
         .padding(16)
         .frame(width: 520)
+        .onAppear {
+            if settings.selectedModel != addModelOption {
+                lastNonAddModelSelection = settings.selectedModel
+            }
+        }
     }
 }

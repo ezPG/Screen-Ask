@@ -2,6 +2,11 @@ import AppKit
 import Combine
 import SwiftUI
 
+final class HUDPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
 @MainActor
 final class FloatingHUDController {
     private var panel: NSPanel?
@@ -75,15 +80,13 @@ final class FloatingHUDController {
     }
 
     private func makePanel() -> NSPanel {
-        let panel = NSPanel(
+        let panel = HUDPanel(
             contentRect: NSRect(origin: .zero, size: compactSize),
-            styleMask: [.fullSizeContentView, .titled],
+            styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         panel.level = .floating
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.isFloatingPanel = true

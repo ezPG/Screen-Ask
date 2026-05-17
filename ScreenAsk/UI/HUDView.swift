@@ -10,8 +10,28 @@ struct HUDView: View {
     let onAsk: () -> Void
     let onDismiss: () -> Void
 
+    @FocusState private var isPromptFocused: Bool
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+
+                Spacer()
+
+                SettingsLink {
+                    Image(systemName: "gearshape")
+                }
+                .buttonStyle(.plain)
+                .help("Open Settings")
+            }
+
             Image(nsImage: image)
                 .resizable()
                 .scaledToFit()
@@ -31,6 +51,7 @@ struct HUDView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color.white.opacity(0.14), lineWidth: 1)
                 )
+                .focused($isPromptFocused)
                 .onChange(of: prompt) { _, _ in
                     onPromptChanged()
                 }
@@ -61,5 +82,11 @@ struct HUDView: View {
         .frame(width: 460)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .onAppear {
+            isPromptFocused = true
+        }
+        .onExitCommand {
+            onDismiss()
+        }
     }
 }

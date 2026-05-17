@@ -19,13 +19,19 @@ enum HUDPosition: String, CaseIterable, Identifiable {
 
 @MainActor
 final class AppSettings: ObservableObject {
-    @AppStorage("selectedModel") var selectedModel: String = "llama-3.2-11b-vision-preview"
-    @AppStorage("modelList") private var modelListStorage: String = "llama-3.2-11b-vision-preview"
+    private let defaultVisionModel = "meta-llama/llama-4-scout-17b-16e-instruct"
+
+    @AppStorage("selectedModel") var selectedModel: String = "meta-llama/llama-4-scout-17b-16e-instruct"
+    @AppStorage("modelList") private var modelListStorage: String = "meta-llama/llama-4-scout-17b-16e-instruct"
     @AppStorage("watchFolderPath") var watchFolderPath: String = NSString(string: "~/Desktop").expandingTildeInPath
     @AppStorage("hudPosition") private var hudPositionRaw: String = HUDPosition.bottomRight.rawValue
     @AppStorage("autoDismissSeconds") var autoDismissSeconds: Double = 8
 
     @Published var apiKey: String = KeychainManager.loadAPIKey()
+
+    init() {
+        normalizeDefaultModelSelectionIfNeeded()
+    }
 
     var hudPosition: HUDPosition {
         get { HUDPosition(rawValue: hudPositionRaw) ?? .bottomRight }
@@ -39,7 +45,7 @@ final class AppSettings: ObservableObject {
             .filter { !$0.isEmpty }
 
         if parsed.isEmpty {
-            return ["llama-3.2-11b-vision-preview"]
+            return ["meta-llama/llama-4-scout-17b-16e-instruct"]
         }
         return parsed
     }
@@ -70,5 +76,18 @@ final class AppSettings: ObservableObject {
         }
         watchFolderPath = selectedURL.path
         return true
+    }
+
+    private func normalizeDefaultModelSelectionIfNeeded() {
+        let trimmed = selectedModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == "llama-3.2-11b-vision-preview" {
+            selectedModel = defaultVisionModel
+        }
+
+        var models = availableModels
+        if !models.contains(defaultVisionModel) {
+            models.insert(defaultVisionModel, at: 0)
+            modelListStorage = models.joined(separator: "\n")
+        }
     }
 }

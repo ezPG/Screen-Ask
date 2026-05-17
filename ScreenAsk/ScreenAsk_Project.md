@@ -25,6 +25,14 @@
 - [x] Apply modern translucent styling (less opaque, cleaner visual hierarchy)
 - [ ] Validate interaction flow (type -> Enter/Ask -> expand -> stream)
 
+## Settings & Controls Checklist
+
+- [x] Add HUD top-right controls (Settings and Close)
+- [x] Add secure API key field with show/hide toggle
+- [x] Add "Get API key" action beside Groq section
+- [x] Add Vision model dropdown with custom add option
+- [x] Add Quit Service button in Preferences
+
 ## Overview
 
 ScreenAsk is a lightweight macOS menubar app that runs silently in the background. The moment a user takes a screenshot, ScreenAsk detects it and displays a floating HUD near the native thumbnail position. From there, the user can ask any question about the screenshot in natural language and receive a streamed AI response — all without leaving their current context.
