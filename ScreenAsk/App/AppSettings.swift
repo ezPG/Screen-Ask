@@ -26,6 +26,11 @@ final class AppSettings: ObservableObject {
     @AppStorage("watchFolderPath") var watchFolderPath: String = NSString(string: "~/Desktop").expandingTildeInPath
     @AppStorage("hudPosition") private var hudPositionRaw: String = HUDPosition.bottomRight.rawValue
     @AppStorage("autoDismissSeconds") var autoDismissSeconds: Double = 8
+    @AppStorage("customSystemPrompt") var customSystemPrompt: String = """
+You are ScreenAsk, a concise vision assistant. Use the screenshot as primary context.
+Answer clearly and directly. If the user asks a follow-up, use prior chat context.
+If unsure, say what is uncertain and ask a short clarifying question.
+"""
 
     @Published var apiKey: String = KeychainManager.loadAPIKey()
 

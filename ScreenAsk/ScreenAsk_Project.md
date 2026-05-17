@@ -33,6 +33,16 @@
 - [x] Add Vision model dropdown with custom add option
 - [x] Add Quit Service button in Preferences
 
+## Intelligence Upgrade Checklist
+
+- [ ] Add multi-turn chat memory (session history included in model requests)
+- [ ] Add custom system prompt in Preferences (multiline text box)
+- [ ] Validate multi-turn + system prompt behavior in manual run
+- [ ] Add optional web search/scrape tool integration (free provider)
+- [ ] Add optional image search tool integration (free provider)
+- [ ] Add settings toggles for web search and image search
+- [ ] Add model-side routing logic so web/image tools are used only when needed
+
 ## Overview
 
 ScreenAsk is a lightweight macOS menubar app that runs silently in the background. The moment a user takes a screenshot, ScreenAsk detects it and displays a floating HUD near the native thumbnail position. From there, the user can ask any question about the screenshot in natural language and receive a streamed AI response — all without leaving their current context.

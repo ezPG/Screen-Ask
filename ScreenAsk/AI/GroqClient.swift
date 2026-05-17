@@ -4,12 +4,20 @@ struct GroqClient {
     func streamVisionResponse(
         apiKey: String,
         model: String,
+        systemPrompt: String,
+        history: [MessageBuilder.ChatTurn],
         prompt: String,
         imageFileURL: URL,
         onDelta: @escaping @Sendable (String) async -> Void
     ) async throws {
         let base64 = try ImageEncoder.base64PNG(at: imageFileURL)
-        let requestBody = MessageBuilder.makeVisionRequest(model: model, prompt: prompt, base64Image: base64)
+        let requestBody = MessageBuilder.makeVisionRequest(
+            model: model,
+            systemPrompt: systemPrompt,
+            history: history,
+            prompt: prompt,
+            base64Image: base64
+        )
 
         var request = URLRequest(url: URL(string: "https://api.groq.com/openai/v1/chat/completions")!)
         request.httpMethod = "POST"
