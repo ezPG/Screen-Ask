@@ -92,6 +92,25 @@ struct PreferencesView: View {
                     }
                 }
 
+                Section("Prompting") {
+                    Text("Custom system prompt")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    TextEditor(text: $settings.customSystemPrompt)
+                        .font(.system(size: 12, design: .monospaced))
+                        .frame(minHeight: 120)
+                        .padding(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.03))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                        )
+                }
+
                 Section("Behavior") {
                     TextField("Watch folder", text: $settings.watchFolderPath)
                     Button("Grant Folder Access") {

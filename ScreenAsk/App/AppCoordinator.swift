@@ -24,6 +24,8 @@ final class AppCoordinator: ObservableObject {
     private var suppressedMiniTriggerPath: String?
     private var suppressedMiniTriggerUntil: Date = .distantPast
     private var miniTriggerCooldownByPath: [String: Date] = [:]
+    private var chatHistory: [MessageBuilder.ChatTurn] = []
+    private var streamingAssistantBuffer: String = ""
 
     init() {
         PermissionManager.ensureRequiredPermissions()
@@ -116,6 +118,12 @@ final class AppCoordinator: ObservableObject {
         latestScreenshotPath = url.path
         canShowHUDForLatestScreenshot = true
 
+        // If HUD is already open, do not show mini trigger for incoming filesystem noise.
+        if hudController.isVisible {
+            statusMessage = "HUD already visible; suppressing mini trigger"
+            return
+        }
+
         if suppressedMiniTriggerPath == url.path, Date() <= suppressedMiniTriggerUntil {
             statusMessage = "Skipping mini trigger for quick action image"
             return
@@ -135,6 +143,7 @@ final class AppCoordinator: ObservableObject {
             autoDismiss: settings.autoDismissSeconds,
             position: settings.hudPosition
         )
+        // Prevent repeat mini trigger from duplicate/secondary writes for the same file.
         miniTriggerCooldownByPath[url.path] = Date().addingTimeInterval(settings.autoDismissSeconds + 3)
         statusMessage = "Mini ask trigger shown"
 
@@ -225,6 +234,9 @@ final class AppCoordinator: ObservableObject {
                 autoDismiss: settings.autoDismissSeconds,
                 position: settings.hudPosition
             )
+            // Prevent immediate re-show of mini trigger for the same file after HUD opens.
+            miniTriggerCooldownByPath[screenshotURL.path] = Date().addingTimeInterval(settings.autoDismissSeconds + 3)
+            chatHistory.removeAll()
             statusMessage = "HUD shown"
         }
     }
@@ -261,6 +273,7 @@ final class AppCoordinator: ObservableObject {
                 autoDismiss: nil,
                 position: settings.hudPosition
             )
+            chatHistory.removeAll()
             statusMessage = "Opened HUD from quick action"
         }
     }
@@ -284,15 +297,23 @@ final class AppCoordinator: ObservableObject {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty else { return }
 
+        // Mark user interaction before any async work so auto-dismiss cannot close HUD mid-typing/send.
+        hudController.setLoading(true)
+
         guard !settings.apiKey.isEmpty else {
-            hudController.beginResponse()
-            hudController.appendResponse("Missing Groq API key. Add it in Preferences.")
+            hudController.beginResponse(for: trimmedPrompt)
+            hudController.appendResponse("Error: Missing Groq API key. Add it in Preferences.")
+            hudController.setLoading(false)
             return
         }
-        guard let screenshotURL = currentScreenshotURL else { return }
+        guard let screenshotURL = currentScreenshotURL else {
+            hudController.setLoading(false)
+            return
+        }
 
-        hudController.beginResponse()
-        hudController.setLoading(true)
+        chatHistory.append(.init(role: "user", text: trimmedPrompt))
+        hudController.beginResponse(for: trimmedPrompt)
+        streamingAssistantBuffer = ""
 
         Task {
             defer {
@@ -305,11 +326,21 @@ final class AppCoordinator: ObservableObject {
                 try await groqClient.streamVisionResponse(
                     apiKey: settings.apiKey,
                     model: settings.selectedModel,
+                    systemPrompt: settings.customSystemPrompt,
+                    history: chatHistory,
                     prompt: trimmedPrompt,
                     imageFileURL: screenshotURL
                 ) { [weak self] delta in
                     await MainActor.run {
+                        self?.streamingAssistantBuffer += delta
                         self?.hudController.appendResponse(delta)
+                    }
+                }
+
+                await MainActor.run {
+                    let trimmed = self.streamingAssistantBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        self.chatHistory.append(.init(role: "assistant", text: trimmed))
                     }
                 }
             } catch {
@@ -323,7 +354,9 @@ final class AppCoordinator: ObservableObject {
                 }
 
                 await MainActor.run {
-                    self.hudController.appendResponse("\n\nError: \(message)")
+                    let errorText = "Error: \(message)"
+                    self.hudController.appendResponse("\n\n\(errorText)")
+                    self.chatHistory.append(.init(role: "assistant", text: errorText))
                 }
             }
         }

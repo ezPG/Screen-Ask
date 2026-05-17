@@ -16,6 +16,12 @@ final class FloatingHUDController {
     private let compactSize = NSSize(width: 480, height: 360)
     private let expandedSize = NSSize(width: 520, height: 620)
 
+    // Used by the coordinator to avoid re-showing mini trigger while HUD is active.
+    var isVisible: Bool {
+        panel?.isVisible ?? false
+    }
+
+    // If user is interacting, new screenshot events should not interrupt the current HUD.
     var shouldSuppressAutoShow: Bool {
         (panel?.isVisible ?? false) && state.hasUserInteracted && !state.isLoading
     }
@@ -27,9 +33,9 @@ final class FloatingHUDController {
         currentPosition = position
         let preservePrompt = (panel?.isVisible ?? false) && state.hasUserInteracted
 
+        // Always refresh screenshot context; reset conversation for the new image.
         state.image = image
-        state.responseText = ""
-        state.showResponse = false
+        state.chatMessages = []
         if !preservePrompt {
             state.prompt = ""
             state.hasUserInteracted = false
@@ -46,25 +52,39 @@ final class FloatingHUDController {
         if let autoDismiss, autoDismiss > 0 {
             DispatchQueue.main.asyncAfter(deadline: .now() + autoDismiss) { [weak self] in
                 guard let self else { return }
+                // Do not auto-dismiss if the user started interacting or a request is running.
                 guard !self.state.isLoading, !self.state.hasUserInteracted else { return }
                 self.dismiss()
             }
         }
     }
 
-    func beginResponse() {
-        state.responseText = ""
-        state.showResponse = true
+    func beginResponse(for userPrompt: String) {
+        let trimmed = userPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        // Append one user bubble and an assistant placeholder bubble.
+        // Streaming tokens will fill the latest assistant bubble in appendResponse.
+        state.chatMessages.append(.init(role: "user", text: trimmed))
+        state.chatMessages.append(.init(role: "assistant", text: ""))
+        state.prompt = ""
         if let panel {
+            // Expand only after first send so initial HUD stays compact.
             resize(panel: panel, size: expandedSize)
         }
     }
 
     func appendResponse(_ text: String) {
-        if !state.showResponse {
-            beginResponse()
+        guard !text.isEmpty else { return }
+        guard !state.chatMessages.isEmpty else {
+            state.chatMessages.append(.init(role: "assistant", text: text))
+            return
         }
-        state.responseText += text
+        let index = state.chatMessages.count - 1
+        if state.chatMessages[index].role != "assistant" {
+            state.chatMessages.append(.init(role: "assistant", text: text))
+            return
+        }
+        state.chatMessages[index].text += text
     }
 
     func setLoading(_ loading: Bool) {
@@ -113,10 +133,10 @@ final class FloatingHUDController {
         let deltaW = targetWidth - frame.width
         let deltaH = targetHeight - frame.height
 
-        // Grow upward from bottom edge.
+        // Keep the bottom edge anchored: growth goes upward; shrink comes downward.
         frame.origin.y -= deltaH
 
-        // For bottom-right anchoring, grow inward to the left.
+        // For bottom-right anchoring, horizontal growth goes left.
         if currentPosition == .bottomRight {
             frame.origin.x -= deltaW
         }
@@ -165,12 +185,17 @@ final class FloatingHUDController {
 
 @MainActor
 final class HUDState: ObservableObject {
+    struct ChatMessage: Identifiable {
+        let id = UUID()
+        let role: String
+        var text: String
+    }
+
     @Published var image: NSImage = NSImage(size: NSSize(width: 1, height: 1))
     @Published var prompt: String = ""
     @Published var isLoading: Bool = false
     @Published var hasUserInteracted: Bool = false
-    @Published var responseText: String = ""
-    @Published var showResponse: Bool = false
+    @Published var chatMessages: [ChatMessage] = []
 }
 
 struct HUDContainerView: View {
@@ -183,8 +208,7 @@ struct HUDContainerView: View {
             image: state.image,
             prompt: $state.prompt,
             isLoading: state.isLoading,
-            responseText: state.responseText,
-            showResponse: state.showResponse,
+            chatMessages: state.chatMessages,
             onPromptChanged: {
                 state.hasUserInteracted = true
             },

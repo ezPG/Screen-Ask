@@ -4,13 +4,13 @@ struct HUDView: View {
     let image: NSImage
     @Binding var prompt: String
     let isLoading: Bool
-    let responseText: String
-    let showResponse: Bool
+    let chatMessages: [HUDState.ChatMessage]
     let onPromptChanged: () -> Void
     let onAsk: () -> Void
     let onDismiss: () -> Void
 
     @FocusState private var isPromptFocused: Bool
+    private var hasConversation: Bool { !chatMessages.isEmpty }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -39,8 +39,64 @@ struct HUDView: View {
                 .frame(height: 170)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            TextField("Ask about this screenshot", text: $prompt)
-                .textFieldStyle(.plain)
+            if hasConversation {
+                Divider().overlay(Color.white.opacity(0.12))
+
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(chatMessages) { message in
+                                HStack {
+                                    if message.role == "assistant" { Spacer(minLength: 24) }
+                                    Text(message.text.isEmpty && message.role == "assistant" ? "Thinking..." : message.text)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                        .foregroundStyle(.white.opacity(0.96))
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(message.role == "assistant" ? Color.white.opacity(0.10) : Color.blue.opacity(0.35))
+                                        )
+                                        .textSelection(.enabled)
+                                    if message.role == "user" { Spacer(minLength: 24) }
+                                }
+                                .id(message.id)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(minHeight: 160, maxHeight: 260)
+                    .onChange(of: chatMessages.count) { _, _ in
+                        if let lastID = chatMessages.last?.id {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(lastID, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+            }
+
+            HStack {
+                Button("Dismiss", action: onDismiss)
+                Spacer()
+                HStack(spacing: 8) {
+                    TextField("Ask about this screenshot", text: $prompt)
+                        .textFieldStyle(.plain)
+                        .focused($isPromptFocused)
+                        .onChange(of: prompt) { _, _ in
+                            onPromptChanged()
+                        }
+                        .onSubmit {
+                            onAsk()
+                        }
+                        .submitLabel(.send)
+
+                    Button(action: onAsk) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 20))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+                }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background(
@@ -51,31 +107,7 @@ struct HUDView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color.white.opacity(0.14), lineWidth: 1)
                 )
-                .focused($isPromptFocused)
-                .onChange(of: prompt) { _, _ in
-                    onPromptChanged()
-                }
-                .onSubmit {
-                    onAsk()
-                }
-                .submitLabel(.send)
-
-            if showResponse {
-                Divider().overlay(Color.white.opacity(0.12))
-                ScrollView {
-                    Text(responseText.isEmpty ? "Thinking..." : responseText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .foregroundStyle(.white.opacity(0.95))
-                        .textSelection(.enabled)
-                }
-                .frame(minHeight: 160, maxHeight: 260)
-            }
-
-            HStack {
-                Button("Dismiss", action: onDismiss)
-                Spacer()
-                Button(isLoading ? "Asking..." : "Ask AI", action: onAsk)
-                    .disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+                .frame(maxWidth: 350)
             }
         }
         .padding(14)
