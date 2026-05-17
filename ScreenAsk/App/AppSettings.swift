@@ -20,6 +20,7 @@ enum HUDPosition: String, CaseIterable, Identifiable {
 @MainActor
 final class AppSettings: ObservableObject {
     @AppStorage("selectedModel") var selectedModel: String = "llama-3.2-11b-vision-preview"
+    @AppStorage("modelList") private var modelListStorage: String = "llama-3.2-11b-vision-preview"
     @AppStorage("watchFolderPath") var watchFolderPath: String = NSString(string: "~/Desktop").expandingTildeInPath
     @AppStorage("hudPosition") private var hudPositionRaw: String = HUDPosition.bottomRight.rawValue
     @AppStorage("autoDismissSeconds") var autoDismissSeconds: Double = 8
@@ -29,6 +30,30 @@ final class AppSettings: ObservableObject {
     var hudPosition: HUDPosition {
         get { HUDPosition(rawValue: hudPositionRaw) ?? .bottomRight }
         set { hudPositionRaw = newValue.rawValue }
+    }
+
+    var availableModels: [String] {
+        let parsed = modelListStorage
+            .split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if parsed.isEmpty {
+            return ["llama-3.2-11b-vision-preview"]
+        }
+        return parsed
+    }
+
+    func addModel(_ model: String) {
+        let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        var models = availableModels
+        if !models.contains(trimmed) {
+            models.append(trimmed)
+            modelListStorage = models.joined(separator: "\n")
+        }
+        selectedModel = trimmed
     }
 
     func saveAPIKey() {
