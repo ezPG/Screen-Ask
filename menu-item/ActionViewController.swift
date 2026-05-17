@@ -5,12 +5,15 @@ final class ActionViewController: NSViewController {
     private let appGroupID = "group.com.ezpg.screenask"
     private let requestKey = "quick_action_image_path"
 
-    override var nibName: NSNib.Name? {
-        NSNib.Name("ActionViewController")
+    override func loadView() {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.clear.cgColor
+        self.view = view
     }
 
-    override func viewDidAppear() {
-        super.viewDidAppear()
+    override func viewDidLoad() {
+        super.viewDidLoad()
         processInputAndSendToHostApp()
     }
 

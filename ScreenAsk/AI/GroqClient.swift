@@ -18,8 +18,22 @@ struct GroqClient {
         request.httpBody = try JSONEncoder().encode(requestBody)
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
+        guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
+        }
+
+        if !(200..<300).contains(http.statusCode) {
+            var body = ""
+            for try await line in bytes.lines {
+                body += line
+                if body.count > 4000 { break }
+            }
+            let message = body.isEmpty ? "HTTP \(http.statusCode)" : "HTTP \(http.statusCode): \(body)"
+            throw NSError(
+                domain: NSURLErrorDomain,
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: message]
+            )
         }
 
         for try await line in bytes.lines {

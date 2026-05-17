@@ -17,5 +17,9 @@
 			<string></string>
 		</dict>
 	</array>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>ScreenAsk needs screen recording access to detect and read new screenshots.</string>
 </dict>
 </plist>
