@@ -35,8 +35,8 @@
 
 ## Intelligence Upgrade Checklist
 
-- [ ] Add multi-turn chat memory (session history included in model requests)
-- [ ] Add custom system prompt in Preferences (multiline text box)
+- [x] Add multi-turn chat memory (session history included in model requests)
+- [x] Add custom system prompt in Preferences (multiline text box)
 - [ ] Validate multi-turn + system prompt behavior in manual run
 - [ ] Add optional web search/scrape tool integration (free provider)
 - [ ] Add optional image search tool integration (free provider)
