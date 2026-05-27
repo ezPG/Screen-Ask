@@ -26,10 +26,13 @@ final class AppSettings: ObservableObject {
     @AppStorage("watchFolderPath") var watchFolderPath: String = NSString(string: "~/Desktop").expandingTildeInPath
     @AppStorage("hudPosition") private var hudPositionRaw: String = HUDPosition.bottomRight.rawValue
     @AppStorage("autoDismissSeconds") var autoDismissSeconds: Double = 8
+    @AppStorage("webSearchEnabled") var webSearchEnabled: Bool = true
+    @AppStorage("imageSearchEnabled") var imageSearchEnabled: Bool = false
     @AppStorage("customSystemPrompt") var customSystemPrompt: String = """
 You are ScreenAsk, a concise vision assistant. Use the screenshot as primary context.
 Answer clearly and directly. If the user asks a follow-up, use prior chat context.
 If unsure, say what is uncertain and ask a short clarifying question.
+When web search results are provided, use them to give accurate, up-to-date answers and cite URLs.
 """
 
     @Published var apiKey: String = KeychainManager.loadAPIKey()

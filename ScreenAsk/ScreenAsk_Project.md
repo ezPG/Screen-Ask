@@ -37,11 +37,11 @@
 
 - [x] Add multi-turn chat memory (session history included in model requests)
 - [x] Add custom system prompt in Preferences (multiline text box)
-- [ ] Validate multi-turn + system prompt behavior in manual run
-- [ ] Add optional web search/scrape tool integration (free provider)
+- [x] Validate multi-turn + system prompt behavior in manual run
+- [x] Add optional web search/scrape tool integration (free provider)
 - [ ] Add optional image search tool integration (free provider)
-- [ ] Add settings toggles for web search and image search
-- [ ] Add model-side routing logic so web/image tools are used only when needed
+- [x] Add settings toggles for web search and image search
+- [x] Add model-side routing logic so web/image tools are used only when needed
 
 ## Overview
 
