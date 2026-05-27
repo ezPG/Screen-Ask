@@ -111,6 +111,15 @@ struct PreferencesView: View {
                         )
                 }
 
+                Section("Tools") {
+                    Toggle("Web Search", isOn: $settings.webSearchEnabled)
+                        .help("Allow the AI to search the web when your question needs current information")
+
+                    Toggle("Image Search", isOn: $settings.imageSearchEnabled)
+                        .help("Allow the AI to search for images (coming soon)")
+                        .disabled(true)  // Placeholder — not yet implemented
+                }
+
                 Section("Behavior") {
                     TextField("Watch folder", text: $settings.watchFolderPath)
                     Button("Grant Folder Access") {

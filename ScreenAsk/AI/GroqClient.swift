@@ -56,4 +56,43 @@ struct GroqClient {
             }
         }
     }
+
+    func generateSearchQuery(
+        apiKey: String,
+        model: String,
+        systemPrompt: String,
+        history: [MessageBuilder.ChatTurn],
+        prompt: String
+    ) async throws -> String? {
+        let requestBody = MessageBuilder.makeTextRequest(
+            model: model,
+            systemPrompt: systemPrompt,
+            history: history,
+            prompt: prompt
+        )
+
+        var request = URLRequest(url: URL(string: "https://api.groq.com/openai/v1/chat/completions")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONEncoder().encode(requestBody)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if !(200..<300).contains(http.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            let message = body.isEmpty ? "HTTP \(http.statusCode)" : "HTTP \(http.statusCode): \(body)"
+            throw NSError(
+                domain: NSURLErrorDomain,
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: message]
+            )
+        }
+
+        let chatResponse = try JSONDecoder().decode(GroqChatResponse.self, from: data)
+        return chatResponse.choices.first?.message.content
+    }
 }

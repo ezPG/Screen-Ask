@@ -48,7 +48,7 @@ struct HUDView: View {
                             ForEach(chatMessages) { message in
                                 HStack {
                                     if message.role == "assistant" { Spacer(minLength: 24) }
-                                    Text(message.text.isEmpty && message.role == "assistant" ? "Thinking..." : message.text)
+                                    Text(try! AttributedString(markdown: message.text.isEmpty && message.role == "assistant" ? "Thinking..." : message.text, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 10)
                                         .foregroundStyle(.white.opacity(0.96))
@@ -57,6 +57,7 @@ struct HUDView: View {
                                                 .fill(message.role == "assistant" ? Color.white.opacity(0.10) : Color.blue.opacity(0.35))
                                         )
                                         .textSelection(.enabled)
+                                        .tint(.blue) // Ensure links are blue and clickable
                                     if message.role == "user" { Spacer(minLength: 24) }
                                 }
                                 .id(message.id)

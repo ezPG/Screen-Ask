@@ -322,13 +322,33 @@ final class AppCoordinator: ObservableObject {
                 }
             }
 
+            // Route through tools (web search / scrape) if enabled.
+            let routed = await ToolRouter.route(
+                prompt: trimmedPrompt,
+                history: chatHistory,
+                webSearchEnabled: settings.webSearchEnabled,
+                imageSearchEnabled: settings.imageSearchEnabled,
+                apiKey: settings.apiKey,
+                model: settings.selectedModel,
+                groqClient: groqClient
+            )
+
+            // Show a tool usage indicator in the chat if a tool was invoked.
+            if let toolUsed = routed.toolUsed {
+                await MainActor.run {
+                    self.hudController.appendResponse("🔍 \(toolUsed)\n\n")
+                }
+            }
+
+            let effectivePrompt = routed.enrichedPrompt
+
             do {
                 try await groqClient.streamVisionResponse(
                     apiKey: settings.apiKey,
                     model: settings.selectedModel,
                     systemPrompt: settings.customSystemPrompt,
                     history: chatHistory,
-                    prompt: trimmedPrompt,
+                    prompt: effectivePrompt,
                     imageFileURL: screenshotURL
                 ) { [weak self] delta in
                     await MainActor.run {

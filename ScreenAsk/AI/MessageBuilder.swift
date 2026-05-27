@@ -48,4 +48,36 @@ enum MessageBuilder {
             maxTokens: 1024
         )
     }
+
+    static func makeTextRequest(
+        model: String,
+        systemPrompt: String,
+        history: [ChatTurn],
+        prompt: String
+    ) -> GroqChatRequest {
+        var messages: [GroqMessage] = []
+        let normalizedSystemPrompt = systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !normalizedSystemPrompt.isEmpty {
+            messages.append(
+                GroqMessage(role: "system", content: [.text(normalizedSystemPrompt)])
+            )
+        }
+
+        for turn in history where !turn.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            messages.append(
+                GroqMessage(role: turn.role, content: [.text(turn.text)])
+            )
+        }
+
+        messages.append(
+            GroqMessage(role: "user", content: [.text(prompt)])
+        )
+
+        return GroqChatRequest(
+            model: model,
+            messages: messages,
+            stream: false,
+            maxTokens: 100 // We only need a short search query string
+        )
+    }
 }
