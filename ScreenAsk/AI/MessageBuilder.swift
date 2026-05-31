@@ -11,9 +11,8 @@ enum MessageBuilder {
         systemPrompt: String,
         history: [ChatTurn],
         prompt: String,
-        base64Image: String
+        base64Images: [String]
     ) -> GroqChatRequest {
-        let dataURL = "data:image/png;base64,\(base64Image)"
         let normalizedSystemPrompt = systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
 
         var messages: [GroqMessage] = []
@@ -24,11 +23,15 @@ enum MessageBuilder {
         }
 
         // Provide screenshot context once at the beginning of each request.
+        var contextContents: [GroqContent] = []
+        for base64 in base64Images {
+            let dataURL = "data:image/png;base64,\(base64)"
+            contextContents.append(.imageURL(dataURL))
+        }
+        contextContents.append(.text("Screenshot context for this chat."))
+        
         messages.append(
-            GroqMessage(role: "user", content: [
-                .imageURL(dataURL),
-                .text("Screenshot context for this chat.")
-            ])
+            GroqMessage(role: "user", content: contextContents)
         )
 
         for turn in history where !turn.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

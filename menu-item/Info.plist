@@ -10,11 +10,15 @@
 	<dict>
 		<key>NSExtensionAttributes</key>
 		<dict>
-			<key>NSExtensionActivationRule</key>
-			<dict>
-				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
-				<integer>1</integer>
-			</dict>
+				<key>NSExtensionActivationRule</key>
+				<dict>
+					<key>NSExtensionActivationSupportsAttachmentsWithMinCount</key>
+					<integer>1</integer>
+					<key>NSExtensionActivationSupportsAttachmentsWithMaxCount</key>
+					<integer>100</integer>
+					<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+					<integer>100</integer>
+				</dict>
 			<key>NSExtensionServiceAllowsFinderPreviewItem</key>
 			<true/>
 			<key>NSExtensionServiceAllowsTouchBarItem</key>

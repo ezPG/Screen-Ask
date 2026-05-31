@@ -28,13 +28,16 @@ final class FloatingHUDController {
 
     var onAsk: ((String) -> Void)?
     var onDismiss: (() -> Void)?
+    var onRemoveImage: ((URL) -> Void)?
+    var onDeleteImage: ((URL) -> Void)?
 
-    func show(image: NSImage, autoDismiss: TimeInterval?, position: HUDPosition) {
+    func show(images: [URL: NSImage], contextURLs: [URL], autoDismiss: TimeInterval?, position: HUDPosition) {
         currentPosition = position
         let preservePrompt = (panel?.isVisible ?? false) && state.hasUserInteracted
 
         // Always refresh screenshot context; reset conversation for the new image.
-        state.image = image
+        state.images = images
+        state.contextURLs = contextURLs
         state.chatMessages = []
         if !preservePrompt {
             state.prompt = ""
@@ -94,6 +97,15 @@ final class FloatingHUDController {
         }
     }
 
+    func setContextURLs(_ urls: [URL]) {
+        state.contextURLs = urls
+    }
+
+    func removeImage(for url: URL) {
+        state.images.removeValue(forKey: url)
+        state.contextURLs.removeAll { $0 == url }
+    }
+
     func dismiss() {
         panel?.orderOut(nil)
         onDismiss?()
@@ -114,11 +126,13 @@ final class FloatingHUDController {
         panel.isMovable = true
         panel.isMovableByWindowBackground = true
 
-        panel.contentView = NSHostingView(rootView: HUDContainerView(state: state) { [weak self] prompt in
-            self?.onAsk?(prompt)
-        } onDismiss: { [weak self] in
-            self?.dismiss()
-        })
+        panel.contentView = NSHostingView(rootView: HUDContainerView(
+            state: state,
+            onAsk: { [weak self] prompt in self?.onAsk?(prompt) },
+            onDismiss: { [weak self] in self?.dismiss() },
+            onRemoveImage: { [weak self] url in self?.onRemoveImage?(url) },
+            onDeleteImage: { [weak self] url in self?.onDeleteImage?(url) }
+        ))
 
         self.panel = panel
         return panel
@@ -191,7 +205,8 @@ final class HUDState: ObservableObject {
         var text: String
     }
 
-    @Published var image: NSImage = NSImage(size: NSSize(width: 1, height: 1))
+    @Published var images: [URL: NSImage] = [:]
+    @Published var contextURLs: [URL] = []
     @Published var prompt: String = ""
     @Published var isLoading: Bool = false
     @Published var hasUserInteracted: Bool = false
@@ -202,10 +217,13 @@ struct HUDContainerView: View {
     @ObservedObject var state: HUDState
     let onAsk: (String) -> Void
     let onDismiss: () -> Void
+    let onRemoveImage: (URL) -> Void
+    let onDeleteImage: (URL) -> Void
 
     var body: some View {
         HUDView(
-            image: state.image,
+            images: state.images,
+            contextURLs: state.contextURLs,
             prompt: $state.prompt,
             isLoading: state.isLoading,
             chatMessages: state.chatMessages,
@@ -213,7 +231,9 @@ struct HUDContainerView: View {
                 state.hasUserInteracted = true
             },
             onAsk: { onAsk(state.prompt) },
-            onDismiss: onDismiss
+            onDismiss: onDismiss,
+            onRemoveImage: onRemoveImage,
+            onDeleteImage: onDeleteImage
         )
     }
 }

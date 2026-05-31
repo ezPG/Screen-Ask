@@ -18,54 +18,61 @@ final class ActionViewController: NSViewController {
     }
 
     private func processInputAndSendToHostApp() {
-        guard let extensionItem = extensionContext?.inputItems.first as? NSExtensionItem,
-              let attachments = extensionItem.attachments,
-              !attachments.isEmpty else {
+        guard let inputItems = extensionContext?.inputItems as? [NSExtensionItem], !inputItems.isEmpty else {
             complete()
             return
         }
 
-        for provider in attachments {
-            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { [weak self] item, _ in
-                    guard let self else { return }
-                    guard let fileURL = item as? URL else {
-                        self.complete()
-                        return
-                    }
-                    self.persistAndOpenHostApp(fileURL: fileURL)
-                }
-                return
-            }
+        var urls: [URL] = []
+        let group = DispatchGroup()
 
-            if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-                provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { [weak self] item, _ in
-                    guard let self else { return }
-                    if let fileURL = item as? URL {
-                        self.persistAndOpenHostApp(fileURL: fileURL)
-                    } else {
-                        self.complete()
+        for item in inputItems {
+            guard let attachments = item.attachments else { continue }
+            for provider in attachments {
+                if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                    group.enter()
+                    provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                        if let fileURL = item as? URL {
+                            DispatchQueue.main.async { urls.append(fileURL) }
+                        }
+                        group.leave()
+                    }
+                } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    group.enter()
+                    provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { item, _ in
+                        if let fileURL = item as? URL {
+                            DispatchQueue.main.async { urls.append(fileURL) }
+                        }
+                        group.leave()
                     }
                 }
-                return
             }
         }
 
-        complete()
+        group.notify(queue: .main) {
+            if urls.isEmpty {
+                self.complete()
+            } else {
+                self.persistAndOpenHostApp(fileURLs: urls)
+            }
+        }
     }
 
-    private func persistAndOpenHostApp(fileURL: URL) {
+    private func persistAndOpenHostApp(fileURLs: [URL]) {
         guard let defaults = UserDefaults(suiteName: appGroupID) else {
             complete()
             return
         }
 
-        guard let sharedURL = copyToSharedContainer(fileURL: fileURL) else {
+        let sharedPaths = fileURLs.map { $0.resolvingSymlinksInPath().path }
+
+        if sharedPaths.isEmpty {
             complete()
             return
         }
 
-        defaults.set(sharedURL.path, forKey: requestKey)
+        // We use a new key for array to avoid conflict with old single string key
+        defaults.set(sharedPaths, forKey: "quick_action_image_paths")
         defaults.synchronize()
 
         if let wakeURL = URL(string: "screenask://ask") {
@@ -73,39 +80,6 @@ final class ActionViewController: NSViewController {
         }
 
         complete()
-    }
-
-    private func copyToSharedContainer(fileURL: URL) -> URL? {
-        guard let containerURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: appGroupID
-        ) else {
-            return nil
-        }
-
-        let inputURL = fileURL.resolvingSymlinksInPath()
-        let ext = inputURL.pathExtension.isEmpty ? "png" : inputURL.pathExtension
-        let outputURL = containerURL
-            .appendingPathComponent("incoming", isDirectory: true)
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(ext)
-
-        do {
-            try FileManager.default.createDirectory(
-                at: outputURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-
-            _ = inputURL.startAccessingSecurityScopedResource()
-            defer { inputURL.stopAccessingSecurityScopedResource() }
-
-            if FileManager.default.fileExists(atPath: outputURL.path) {
-                try FileManager.default.removeItem(at: outputURL)
-            }
-            try FileManager.default.copyItem(at: inputURL, to: outputURL)
-            return outputURL
-        } catch {
-            return nil
-        }
     }
 
     private func complete() {
