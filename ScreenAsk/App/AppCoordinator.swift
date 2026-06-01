@@ -14,8 +14,8 @@ final class AppCoordinator: ObservableObject {
     private let hudController = FloatingHUDController()
     private let miniTriggerController = MiniTriggerPanelController()
     private var watcher: FSEventsWatcher?
-    private var currentScreenshotURL: URL?
-    private var latestImage: NSImage?
+    private var currentScreenshotURLs: [URL] = []
+    private var latestImages: [URL: NSImage] = [:]
     private var scopedWatchFolderURL: URL?
     private var lastHandledScreenshotPath: String?
     private var lastHandledScreenshotAt: Date = .distantPast
@@ -26,12 +26,19 @@ final class AppCoordinator: ObservableObject {
     private var miniTriggerCooldownByPath: [String: Date] = [:]
     private var chatHistory: [MessageBuilder.ChatTurn] = []
     private var streamingAssistantBuffer: String = ""
+    private var activeScopedFolders: [URL] = []
 
     init() {
         PermissionManager.ensureRequiredPermissions()
 
         hudController.onAsk = { [weak self] prompt in
             self?.askAI(prompt: prompt)
+        }
+        hudController.onRemoveImage = { [weak self] url in
+            self?.removeImageFromContext(url)
+        }
+        hudController.onDeleteImage = { [weak self] url in
+            self?.deleteImage(url)
         }
 
         miniTriggerController.onAskTapped = { [weak self] in
@@ -67,6 +74,9 @@ final class AppCoordinator: ObservableObject {
             NotificationCenter.default.removeObserver(becameActiveObserver)
         }
         scopedWatchFolderURL?.stopAccessingSecurityScopedResource()
+        for folder in activeScopedFolders {
+            folder.stopAccessingSecurityScopedResource()
+        }
     }
 
     func restartWatcher() {
@@ -114,7 +124,7 @@ final class AppCoordinator: ObservableObject {
         lastHandledScreenshotPath = url.path
         lastHandledScreenshotAt = now
 
-        currentScreenshotURL = url
+        currentScreenshotURLs = [url]
         latestScreenshotPath = url.path
         canShowHUDForLatestScreenshot = true
 
@@ -152,7 +162,7 @@ final class AppCoordinator: ObservableObject {
                 statusMessage = "Image not ready yet. Mini trigger is available."
                 return
             }
-            latestImage = image
+            latestImages[url] = image
             statusMessage = "Screenshot ready"
         }
     }
@@ -168,6 +178,10 @@ final class AppCoordinator: ObservableObject {
             } catch {
                 // Cocoa error 257 usually means privacy permission denied for Desktop/Documents.
                 statusMessage = "Read failed: \(error.localizedDescription)"
+                if isPermissionError(error),
+                   await requestFolderAccessForFile(url, purpose: "read this image") {
+                    continue
+                }
             }
             try? await Task.sleep(nanoseconds: 150_000_000)
         }
@@ -209,28 +223,31 @@ final class AppCoordinator: ObservableObject {
 
     func showHUDForLatestScreenshot() {
         Task { @MainActor in
-            let targetURL = currentScreenshotURL ?? latestImageInWatchFolder()
+            let targetURL = currentScreenshotURLs.first ?? latestImageInWatchFolder()
             guard let screenshotURL = targetURL else {
                 statusMessage = "No screenshot available yet"
                 return
             }
 
-            let previousURL = currentScreenshotURL
-            currentScreenshotURL = screenshotURL
+            let previousURLs = currentScreenshotURLs
+            currentScreenshotURLs = [screenshotURL]
             latestScreenshotPath = screenshotURL.path
 
-            if latestImage == nil || previousURL != screenshotURL {
-                latestImage = await loadImageWhenReady(from: screenshotURL)
+            if latestImages[screenshotURL] == nil || previousURLs != currentScreenshotURLs {
+                if let loaded = await loadImageWhenReady(from: screenshotURL) {
+                    latestImages[screenshotURL] = loaded
+                }
             }
 
-            guard let image = latestImage else {
+            guard latestImages[screenshotURL] != nil else {
                 statusMessage = "Could not load screenshot image for HUD from \(screenshotURL.lastPathComponent)"
                 return
             }
 
             miniTriggerController.dismiss()
             hudController.show(
-                image: image,
+                images: latestImages,
+                contextURLs: currentScreenshotURLs,
                 autoDismiss: settings.autoDismissSeconds,
                 position: settings.hudPosition
             )
@@ -242,34 +259,35 @@ final class AppCoordinator: ObservableObject {
     }
 
     private func consumePendingQuickActionRequest() {
-        guard let path = QuickActionRequestStore.readAndConsumeRequest() else { return }
-        let fileURL = URL(fileURLWithPath: path)
-        openImageFromExternalTrigger(fileURL)
+        guard let paths = QuickActionRequestStore.readAndConsumeRequest() else { return }
+        let fileURLs = paths.map { URL(fileURLWithPath: $0) }
+        openImagesFromExternalTrigger(fileURLs)
     }
 
-    private func openImageFromExternalTrigger(_ fileURL: URL) {
-        guard isSupportedImageFile(fileURL) else {
-            statusMessage = "Unsupported file type: \(fileURL.pathExtension)"
+    private func openImagesFromExternalTrigger(_ fileURLs: [URL]) {
+        let validURLs = fileURLs.filter { isSupportedImageFile($0) }
+        guard !validURLs.isEmpty else {
+            statusMessage = "Unsupported file types"
             return
         }
 
         Task { @MainActor in
-            currentScreenshotURL = fileURL
-            latestScreenshotPath = fileURL.path
+            currentScreenshotURLs = validURLs
+            latestScreenshotPath = validURLs.first?.path ?? ""
             canShowHUDForLatestScreenshot = true
 
-            suppressedMiniTriggerPath = fileURL.path
-            suppressedMiniTriggerUntil = Date().addingTimeInterval(6)
-
-            latestImage = await loadImageWhenReady(from: fileURL)
-            guard let image = latestImage else {
-                statusMessage = "Could not load image from external trigger"
-                return
+            for url in validURLs {
+                suppressedMiniTriggerPath = url.path
+                suppressedMiniTriggerUntil = Date().addingTimeInterval(6)
+                if let image = await loadImageWhenReady(from: url) {
+                    latestImages[url] = image
+                }
             }
 
             miniTriggerController.dismiss()
             hudController.show(
-                image: image,
+                images: latestImages,
+                contextURLs: currentScreenshotURLs,
                 autoDismiss: nil,
                 position: settings.hudPosition
             )
@@ -290,7 +308,73 @@ final class AppCoordinator: ObservableObject {
         }
 
         let fileURL = URL(fileURLWithPath: decoded)
-        openImageFromExternalTrigger(fileURL)
+        openImagesFromExternalTrigger([fileURL])
+    }
+
+    private func removeImageFromContext(_ url: URL) {
+        currentScreenshotURLs.removeAll { $0 == url }
+        latestImages.removeValue(forKey: url)
+        hudController.removeImage(for: url)
+        if currentScreenshotURLs.isEmpty {
+            hudController.dismiss()
+        } else {
+            hudController.setContextURLs(currentScreenshotURLs)
+        }
+    }
+
+    private func deleteImage(_ url: URL) {
+        do {
+            var trashed: NSURL?
+            try FileManager.default.trashItem(at: url, resultingItemURL: &trashed)
+            removeImageFromContext(url)
+            statusMessage = "Moved image to Trash"
+        } catch {
+            if isPermissionError(error),
+               requestFolderAccessForFileSync(url, purpose: "delete this image") {
+                do {
+                    var trashed: NSURL?
+                    try FileManager.default.trashItem(at: url, resultingItemURL: &trashed)
+                    removeImageFromContext(url)
+                    statusMessage = "Moved image to Trash"
+                    return
+                } catch {
+                    statusMessage = "Delete failed after permission grant: \(error.localizedDescription)"
+                }
+            } else {
+                statusMessage = "Delete failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func isPermissionError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == NSCocoaErrorDomain && nsError.code == 257
+    }
+
+    private func requestFolderAccessForFileSync(_ fileURL: URL, purpose: String) -> Bool {
+        if let scopedURL = FolderAccessManager.startAccessingIfGranted(for: fileURL) {
+            activeScopedFolders.append(scopedURL)
+            return true
+        }
+
+        let parent = fileURL.deletingLastPathComponent()
+        guard let granted = FolderAccessManager.chooseAccessForFolder(
+            startingAt: parent,
+            message: "ScreenAsk needs access to \(parent.lastPathComponent) to \(purpose)."
+        ) else {
+            return false
+        }
+        guard granted.startAccessingSecurityScopedResource() else { return false }
+        activeScopedFolders.append(granted)
+        let grantedPath = granted.standardizedFileURL.path
+        let filePath = fileURL.standardizedFileURL.path
+        return filePath.hasPrefix(grantedPath)
+    }
+
+    private func requestFolderAccessForFile(_ fileURL: URL, purpose: String) async -> Bool {
+        await MainActor.run {
+            requestFolderAccessForFileSync(fileURL, purpose: purpose)
+        }
     }
 
     func askAI(prompt: String) {
@@ -306,7 +390,7 @@ final class AppCoordinator: ObservableObject {
             hudController.setLoading(false)
             return
         }
-        guard let screenshotURL = currentScreenshotURL else {
+        guard !currentScreenshotURLs.isEmpty else {
             hudController.setLoading(false)
             return
         }
@@ -349,7 +433,7 @@ final class AppCoordinator: ObservableObject {
                     systemPrompt: settings.customSystemPrompt,
                     history: chatHistory,
                     prompt: effectivePrompt,
-                    imageFileURL: screenshotURL
+                    imageFileURLs: currentScreenshotURLs
                 ) { [weak self] delta in
                     await MainActor.run {
                         self?.streamingAssistantBuffer += delta

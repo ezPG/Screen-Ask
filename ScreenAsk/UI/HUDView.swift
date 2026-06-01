@@ -1,13 +1,16 @@
 import SwiftUI
 
 struct HUDView: View {
-    let image: NSImage
+    let images: [URL: NSImage]
+    let contextURLs: [URL]
     @Binding var prompt: String
     let isLoading: Bool
     let chatMessages: [HUDState.ChatMessage]
     let onPromptChanged: () -> Void
     let onAsk: () -> Void
     let onDismiss: () -> Void
+    let onRemoveImage: (URL) -> Void
+    let onDeleteImage: (URL) -> Void
 
     @FocusState private var isPromptFocused: Bool
     private var hasConversation: Bool { !chatMessages.isEmpty }
@@ -32,12 +35,50 @@ struct HUDView: View {
                 .help("Open Settings")
             }
 
-            Image(nsImage: image)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .frame(height: 170)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(contextURLs, id: \.self) { url in
+                        if let img = images[url] {
+                            ZStack(alignment: .topTrailing) {
+                                Image(nsImage: img)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 170)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                
+                                Button {
+                                    onRemoveImage(url)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.white, .black.opacity(0.6))
+                                        .font(.system(size: 20))
+                                }
+                                .buttonStyle(.plain)
+                                .padding(6)
+                                .help("Remove from context")
+                                
+                                VStack {
+                                    Spacer()
+                                    HStack {
+                                        Spacer()
+                                        Button {
+                                            onDeleteImage(url)
+                                        } label: {
+                                            Image(systemName: "trash.circle.fill")
+                                                .foregroundStyle(.red, .black.opacity(0.6))
+                                                .font(.system(size: 20))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(6)
+                                        .help("Delete image file")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(height: 170)
 
             if hasConversation {
                 Divider().overlay(Color.white.opacity(0.12))
@@ -48,16 +89,32 @@ struct HUDView: View {
                             ForEach(chatMessages) { message in
                                 HStack {
                                     if message.role == "assistant" { Spacer(minLength: 24) }
-                                    Text(try! AttributedString(markdown: message.text.isEmpty && message.role == "assistant" ? "Thinking..." : message.text, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 10)
-                                        .foregroundStyle(.white.opacity(0.96))
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(message.role == "assistant" ? Color.white.opacity(0.10) : Color.blue.opacity(0.35))
-                                        )
-                                        .textSelection(.enabled)
-                                        .tint(.blue) // Ensure links are blue and clickable
+                                    VStack(alignment: message.role == "assistant" ? .trailing : .leading, spacing: 4) {
+                                        Text(try! AttributedString(markdown: message.text.isEmpty && message.role == "assistant" ? "Thinking..." : message.text, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 10)
+                                            .foregroundStyle(.white.opacity(0.96))
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(message.role == "assistant" ? Color.white.opacity(0.10) : Color.blue.opacity(0.35))
+                                            )
+                                            .textSelection(.enabled)
+                                            .tint(.blue) // Ensure links are blue and clickable
+                                        
+                                        if message.role == "assistant" && !message.text.isEmpty {
+                                            Button {
+                                                NSPasteboard.general.clearContents()
+                                                NSPasteboard.general.setString(message.text, forType: .string)
+                                            } label: {
+                                                Image(systemName: "doc.on.doc")
+                                                    .font(.system(size: 11))
+                                                    .foregroundStyle(.white.opacity(0.6))
+                                            }
+                                            .buttonStyle(.plain)
+                                            .padding(.trailing, 4)
+                                            .help("Copy Response")
+                                        }
+                                    }
                                     if message.role == "user" { Spacer(minLength: 24) }
                                 }
                                 .id(message.id)

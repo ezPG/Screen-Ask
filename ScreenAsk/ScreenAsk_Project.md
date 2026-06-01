@@ -25,6 +25,16 @@
 - [x] Apply modern translucent styling (less opaque, cleaner visual hierarchy)
 - [ ] Validate interaction flow (type -> Enter/Ask -> expand -> stream)
 
+## Service & UI/UX Improvements Checklist
+
+- [x] Run in background, always watching for the screenshots/images added in the folder.
+- [x] Add delete button beside (bottom right corner) the image thumbnail to delete the image and close the window.
+- [x] Add copy response icon below the AI's response.
+- [x] Support selecting multiple images via right-click menu to open a single window with all images in context.
+- [x] Implement a side-scrollable image thumbnail gallery for multiple images.
+- [x] Add 'X' button on gallery thumbnails to individually remove them from the context.
+- [x] Add delete buttons for each gallery thumbnail to delete the file (closes the window only when the last remaining image is deleted).
+
 ## Settings & Controls Checklist
 
 - [x] Add HUD top-right controls (Settings and Close)

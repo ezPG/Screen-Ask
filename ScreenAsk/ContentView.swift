@@ -31,9 +31,11 @@ struct ContentView: View {
             .disabled(!coordinator.canShowHUDForLatestScreenshot)
 
             HStack {
-                SettingsLink {
-                    Text("Preferences")
+                Button("Preferences") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 }
+                .buttonStyle(.plain)
                 Spacer()
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)

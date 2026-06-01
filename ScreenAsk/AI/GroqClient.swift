@@ -7,16 +7,22 @@ struct GroqClient {
         systemPrompt: String,
         history: [MessageBuilder.ChatTurn],
         prompt: String,
-        imageFileURL: URL,
+        imageFileURLs: [URL],
         onDelta: @escaping @Sendable (String) async -> Void
     ) async throws {
-        let base64 = try ImageEncoder.base64PNG(at: imageFileURL)
+        var base64Images: [String] = []
+        for url in imageFileURLs {
+            if let base64 = try? ImageEncoder.base64PNG(at: url) {
+                base64Images.append(base64)
+            }
+        }
+
         let requestBody = MessageBuilder.makeVisionRequest(
             model: model,
             systemPrompt: systemPrompt,
             history: history,
             prompt: prompt,
-            base64Image: base64
+            base64Images: base64Images
         )
 
         var request = URLRequest(url: URL(string: "https://api.groq.com/openai/v1/chat/completions")!)
