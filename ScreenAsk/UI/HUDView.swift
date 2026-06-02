@@ -9,6 +9,7 @@ struct HUDView: View {
     let onPromptChanged: () -> Void
     let onAsk: () -> Void
     let onDismiss: () -> Void
+    let onOpenSettings: () -> Void
     let onRemoveImage: (URL) -> Void
     let onDeleteImage: (URL) -> Void
 
@@ -28,7 +29,9 @@ struct HUDView: View {
 
                 Spacer()
 
-                SettingsLink {
+                Button {
+                    onOpenSettings()
+                } label: {
                     Image(systemName: "gearshape")
                 }
                 .buttonStyle(.plain)

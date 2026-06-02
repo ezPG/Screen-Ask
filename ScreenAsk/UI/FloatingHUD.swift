@@ -215,6 +215,8 @@ final class HUDState: ObservableObject {
 
 struct HUDContainerView: View {
     @ObservedObject var state: HUDState
+    @Environment(\.openSettings) private var openSettings
+
     let onAsk: (String) -> Void
     let onDismiss: () -> Void
     let onRemoveImage: (URL) -> Void
@@ -232,6 +234,11 @@ struct HUDContainerView: View {
             },
             onAsk: { onAsk(state.prompt) },
             onDismiss: onDismiss,
+            onOpenSettings: {
+                state.hasUserInteracted = true
+                NSApp.activate(ignoringOtherApps: true)
+                openSettings()
+            },
             onRemoveImage: onRemoveImage,
             onDeleteImage: onDeleteImage
         )
