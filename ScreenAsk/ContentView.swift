@@ -3,27 +3,33 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var coordinator: AppCoordinator
 
+    @Environment(\.openSettings) private var openSettings
+
+    private let showsDebugInfo = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("ScreenAsk")
                 .font(.headline)
 
-            Text("Watching: \(coordinator.settings.watchFolderPath)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if showsDebugInfo {
+                Text("Watching: \(coordinator.settings.watchFolderPath)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            Text("Latest screenshot:")
-                .font(.caption)
-            Text(coordinator.latestScreenshotPath)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
+                Text("Latest screenshot:")
+                    .font(.caption)
+                Text(coordinator.latestScreenshotPath)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
 
-            Text("Status: \(coordinator.statusMessage)")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                Text("Status: \(coordinator.statusMessage)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
 
-            Divider()
+                Divider()
+            }
 
             Button("Show HUD For Latest Screenshot") {
                 coordinator.showHUDForLatestScreenshot()
@@ -33,7 +39,7 @@ struct ContentView: View {
             HStack {
                 Button("Preferences") {
                     NSApp.activate(ignoringOtherApps: true)
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                    openSettings()
                 }
                 .buttonStyle(.plain)
                 Spacer()
